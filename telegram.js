@@ -16,7 +16,7 @@ class TelegramClient {
         
         telegramOptions = {
           telegram: {
-            agent: agent
+            agent, attachmentAgent: agent
           }
         };
         
