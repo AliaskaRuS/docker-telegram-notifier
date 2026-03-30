@@ -27,7 +27,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images:
-            lorcas/docker-telegram-notifier
+            AliaskaRuS/docker-telegram-notifier
           # Modified tags configuration to handle beta versions
           tags: |
             type=ref,event=branch
