@@ -4,37 +4,29 @@ const { Telegram } = require('telegraf');
 class TelegramClient {
   constructor() {
     const token = process.env.TELEGRAM_NOTIFIER_BOT_TOKEN;
-    const proxyUrl = process.env.HTTPS_PROXY || process.env.https_proxy;
     
-    if (proxyUrl) {
+    let telegramOptions = {};
+    const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
+    
+    if (proxyUrl && !proxyUrl.includes('localhost') && !proxyUrl.includes('127.0.0.1')) {
       try {
         const { HttpsProxyAgent } = require('https-proxy-agent');
+        
         const agent = new HttpsProxyAgent(proxyUrl);
         
-        require('https').globalAgent = agent;
-        require('http').globalAgent = agent;
-        
-        console.log(`🔗 Proxy enabled: ${proxyUrl}`);
-      } catch (e) {
-        if (e.code === 'ERR_REQUIRE_ESM' || e.message.includes('exports')) {
-          try {
-            (async () => {
-              const { HttpsProxyAgent } = await import('https-proxy-agent');
-              const agent = new HttpsProxyAgent(proxyUrl);
-              require('https').globalAgent = agent;
-              require('http').globalAgent = agent;
-              console.log(`🔗 Proxy enabled (ESM): ${proxyUrl}`);
-            })();
-          } catch (e2) {
-            console.warn(`⚠️ Proxy setup failed: ${e2.message}`);
+        telegramOptions = {
+          telegram: {
+            agent: agent
           }
-        } else {
-          console.warn(`⚠️ Proxy setup failed: ${e.message}`);
-        }
+        };
+        
+        console.log(`✅ Proxy configured: ${proxyUrl}`);
+      } catch (e) {
+        console.warn(`⚠️ Proxy setup failed: ${e.message}`);
       }
     }
     
-    this.telegram = new Telegram(token);
+    this.telegram = new Telegram(token, telegramOptions);
     
     this.threadId = 
       process.env.TELEGRAM_NOTIFIER_TOPIC_ID || 
