@@ -1,36 +1,6 @@
 // src/telegram.js
 const { Telegram } = require('telegraf');
 
-let HttpsProxyAgent;
-const tryLoadProxyAgent = () => {
-  if (!HttpsProxyAgent) {
-    try {
-      console.log('🔍 Loading https-proxy-agent...');
-      const mod = require('https-proxy-agent');
-      
-      console.log('📦 Module loaded:', typeof mod);
-      console.log('📦 Has HttpsProxyAgent:', 'HttpsProxyAgent' in mod);
-      console.log('📦 Has default:', 'default' in mod);
-      
-      HttpsProxyAgent = 
-        mod.HttpsProxyAgent ||      
-        mod.default ||              
-        mod;                        
-      
-      console.log('✅ Agent resolved:', typeof HttpsProxyAgent === 'function' ? 'function' : 'unknown');
-      
-    } catch (e) {
-      console.error('❌ Failed to load https-proxy-agent:', e.message);
-      console.error('❌ Error code:', e.code);
-      console.error('❌ Stack:', e.stack);
-    }
-  }
-  
-  const result = !!HttpsProxyAgent;
-  console.log('🔗 tryLoadProxyAgent() returns:', result);
-  return HttpsProxyAgent;
-};
-
 class TelegramClient {
   constructor() {
     const token = process.env.TELEGRAM_NOTIFIER_BOT_TOKEN;
@@ -38,29 +8,33 @@ class TelegramClient {
     
     if (proxyUrl) {
       try {
-        console.log('🔍 Setting up global proxy agent...');
         const { HttpsProxyAgent } = require('https-proxy-agent');
         const agent = new HttpsProxyAgent(proxyUrl);
         
-        const https = require('https');
-        https.globalAgent = agent;
+        require('https').globalAgent = agent;
+        require('http').globalAgent = agent;
         
-        const http = require('http');
-        http.globalAgent = agent;
-        
-        console.log(`🔗 Global proxy agent set: ${proxyUrl}`);
+        console.log(`🔗 Proxy enabled: ${proxyUrl}`);
       } catch (e) {
-        console.warn(`⚠️ Failed to set global proxy: ${e.message}`);
+        if (e.code === 'ERR_REQUIRE_ESM' || e.message.includes('exports')) {
+          try {
+            (async () => {
+              const { HttpsProxyAgent } = await import('https-proxy-agent');
+              const agent = new HttpsProxyAgent(proxyUrl);
+              require('https').globalAgent = agent;
+              require('http').globalAgent = agent;
+              console.log(`🔗 Proxy enabled (ESM): ${proxyUrl}`);
+            })();
+          } catch (e2) {
+            console.warn(`⚠️ Proxy setup failed: ${e2.message}`);
+          }
+        } else {
+          console.warn(`⚠️ Proxy setup failed: ${e.message}`);
+        }
       }
     }
     
     this.telegram = new Telegram(token);
-    
-    this.threadId = 
-      process.env.TELEGRAM_NOTIFIER_TOPIC_ID || 
-      process.env.TELEGRAM_NOTIFIER_THREAD_ID || 
-      null;
-  }
     
     this.threadId = 
       process.env.TELEGRAM_NOTIFIER_TOPIC_ID || 
