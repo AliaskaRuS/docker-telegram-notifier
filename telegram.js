@@ -1,11 +1,11 @@
 // src/telegram.js
-const { Telegram } = require('telegraf');
+const { Telegraf } = require('telegraf');
 
 class TelegramClient {
   constructor() {
     const token = process.env.TELEGRAM_NOTIFIER_BOT_TOKEN;
     
-    let telegramOptions = {};
+    let telegrafOptions = {};
     const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
     
     if (proxyUrl && !proxyUrl.includes('localhost') && !proxyUrl.includes('127.0.0.1')) {
@@ -14,9 +14,10 @@ class TelegramClient {
         
         const agent = new HttpsProxyAgent(proxyUrl);
         
-        telegramOptions = {
+        telegrafOptions = {
           telegram: {
-            agent, attachmentAgent: agent
+            agent: agent,
+            attachmentAgent: agent
           }
         };
         
@@ -26,7 +27,8 @@ class TelegramClient {
       }
     }
     
-    this.telegram = new Telegram(token, telegramOptions);
+    const bot = new Telegraf(token, telegrafOptions);
+    this.telegram = bot.telegram;
     
     this.threadId = 
       process.env.TELEGRAM_NOTIFIER_TOPIC_ID || 
@@ -42,7 +44,7 @@ class TelegramClient {
 
     const threadId = overrides.threadId || this.threadId;
     if (threadId) {
-      options.message_thread_id = parseInt(threadId);
+      options.message_thread_id = parseInt(threadId, 10);
     }
 
     const chatId = overrides.chatId || process.env.TELEGRAM_NOTIFIER_CHAT_ID;
@@ -55,7 +57,7 @@ class TelegramClient {
     
     const threadId = overrides.threadId || this.threadId;
     if (threadId) {
-      options.message_thread_id = parseInt(threadId);
+      options.message_thread_id = parseInt(threadId, 10);
     }
 
     const chatId = overrides.chatId || process.env.TELEGRAM_NOTIFIER_CHAT_ID;
